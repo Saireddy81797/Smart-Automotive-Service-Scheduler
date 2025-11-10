@@ -4,19 +4,18 @@ import os
 from core.db import init_db
 from ui import customer, admin
 
-
 # -------------------------------------------------
-# ✅ Streamlit App Config
+# ✅ Streamlit Page Config
 # -------------------------------------------------
 st.set_page_config(
     page_title="Smart Automotive Scheduler",
-    layout="wide",
-    page_icon="🚗"
+    page_icon="🚗",
+    layout="wide"
 )
 
 
 # -------------------------------------------------
-# ✅ Initialize DB only once (Streamlit cache)
+# ✅ Initialize Database (cached once)
 # -------------------------------------------------
 @st.cache_resource
 def bootstrap():
@@ -26,11 +25,20 @@ def bootstrap():
 
 bootstrap()
 
+st.sidebar.info(f"DB Exists: {os.path.exists('smart_scheduler.db')}")
+
 
 # -------------------------------------------------
 # ✅ Sidebar Navigation
 # -------------------------------------------------
 st.sidebar.title("🚗 Smart Scheduler")
+
+# ✅ Add RESYNC/SEED button for fixing OperationalError
+if st.sidebar.button("🔄 Reseed Database"):
+    from core.seed import main as seed_main
+    seed_main()
+    st.success("✅ Database reseeded successfully!")
+
 
 page = st.sidebar.radio(
     "Select Role",
@@ -39,13 +47,14 @@ page = st.sidebar.radio(
 
 
 # -------------------------------------------------
-# ✅ Render Pages
+# ✅ Page Rendering Logic
 # -------------------------------------------------
 if page == "Customer":
     customer.render()
 
-else:
+elif page == "Admin":
     st.sidebar.subheader("Admin Login")
+
     password = st.sidebar.text_input(
         "Enter Password",
         type="password"
@@ -56,4 +65,5 @@ else:
     if password == admin_pass:
         admin.render()
     else:
-        st.warning("Please enter a valid admin password to continue.")
+        st.warning("Invalid admin password.")
+
