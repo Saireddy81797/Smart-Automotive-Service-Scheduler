@@ -1,43 +1,67 @@
 import streamlit as st
 from datetime import datetime
+from sqlalchemy import select
+from core.db import SessionLocal
+from core.models import ServiceCenter
 from services.scheduler import Scheduler
 from services.optimization import rank_slots
+from ui.components import header, slot_card
 
 scheduler = Scheduler()
 
+def _centers():
+    db = SessionLocal()
+    rows = db.execute(select(ServiceCenter)).scalars().all()
+    return [(c.id, c.name) for c in rows]
 
 def render():
-    st.title("🚗 Book a Service")
+    header("🚗 Book a Service", "Pick a center and choose a convenient slot")
 
-    center_id = st.number_input("Center ID", value=1, step=1)
-    date = st.date_input("Choose Date")
-    service_minutes = st.slider("Service Duration (mins)", 30, 180, 60, 15)
+    centers = _centers()
+    if not centers:
+        st.warning("No service centers found. Click **Reseed Database** in the sidebar and refresh.")
+        return
+
+    center_names = {cid: name for cid, name in centers}
+    colA, colB = st.columns([2,1], vertical_alignment="center")
+
+    with colA:
+        cid = st.selectbox(
+            "Select Service Center",
+            options=[c[0] for c in centers],
+            format_func=lambda x: center_names[x],
+            index=0
+        )
+    with colB:
+        date = st.date_input("Choose Date", datetime.today())
+
+    duration = st.slider("Service Duration (mins)", 30, 180, 60, 15)
+
+    st.markdown("### 🎯 Recommended Slots")
 
     if date:
         day = datetime.combine(date, datetime.min.time())
-        available = scheduler.list_available(center_id, day)
-        ranked = rank_slots(available, service_minutes)
+        available = scheduler.list_available(cid, day)
+        ranked = rank_slots(available, duration)
 
-        st.subheader("Recommended Slots")
+        if not ranked:
+            st.info("No slots on this day. Try another date.")
+            return
 
         for s in ranked[:10]:
-            cols = st.columns([4, 1, 1])
-            with cols[0]:
-                st.write(
-                    f"{s['start']} → {s['end']} | remaining={s['remaining']} | score={s['score']}"
-                )
-            with cols[1]:
+            slot_card(s)
+            c1, c2, _ = st.columns([1,1,8])
+            with c1:
                 if st.button("Hold", key=f"hold_{s['slot_id']}"):
                     booking_id = scheduler.hold_slot(
-                        s['slot_id'], "Guest", "TS07AB1234", "General Service"
+                        s["slot_id"], "Guest", "TS07AB1234", "General Service"
                     )
                     st.session_state["held_booking"] = booking_id
-                    st.success("Slot held for 5 minutes.")
-
-            with cols[2]:
+                    st.toast("Slot held for 5 minutes. Click Confirm to finalize.", icon="⏳")
+            with c2:
                 if st.button("Confirm", key=f"confirm_{s['slot_id']}"):
                     bid = st.session_state.get("held_booking")
                     if bid and scheduler.confirm_booking(bid):
-                        st.success("✅ Booking Confirmed")
+                        st.toast("Booking Confirmed ✅", icon="✅")
                     else:
-                        st.error("Please hold a slot before confirming.")
+                        st.toast("Hold a slot before confirming.", icon="⚠️")
