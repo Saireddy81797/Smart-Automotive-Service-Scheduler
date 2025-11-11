@@ -1,3 +1,39 @@
+st.markdown("""
+<style>
+/* page width */
+.block-container {max-width: 1100px;}
+
+/* headers */
+h1, h2, h3 {letter-spacing: .3px}
+
+/* cards */
+.card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #111827;
+  border: 1px solid rgba(124,58,237,.25);
+  box-shadow: 0 6px 24px rgba(0,0,0,.25);
+  margin-bottom: 12px;
+}
+
+/* pill badges */
+.badge {
+  display:inline-block; padding:4px 10px; border-radius:999px;
+  font-size: 12px; font-weight: 600;
+}
+.badge.green { background:#064e3b; color:#a7f3d0; border:1px solid #10b98133;}
+.badge.yellow{ background:#4d3a10; color:#fde68a; border:1px solid #f59e0b33;}
+.badge.red   { background:#4c1d1d; color:#fecaca; border:1px solid #ef444433;}
+
+/* nicer buttons */
+.stButton>button {
+  border-radius: 12px; padding: 8px 14px; font-weight: 600;
+  border: 1px solid rgba(124,58,237,.35);
+}
+.stButton>button:hover {transform: translateY(-1px); transition: .15s}
+</style>
+""", unsafe_allow_html=True)
+
 import streamlit as st
 import os
 import sqlite3
