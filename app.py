@@ -1,32 +1,20 @@
-# ---- IMPORTS FIRST (so st exists before we use it) ----
+# ------------ IMPORTS (must come first) ------------
 import os
-import sqlite3
 import streamlit as st
 
 from core.db import init_db
 from ui import customer, admin
 
-# ---- PAGE CONFIG ----
-st.set_page_config(page_title="Smart Automotive Scheduler", page_icon="🚗", layout="wide")
 
-# ---- GLOBAL CSS (after imports) ----
-st.markdown("""
-<style>
-.block-container {max-width: 1100px;}
-h1, h2, h3 {letter-spacing: .3px}
-.card { padding: 14px 16px; border-radius: 16px; background: #111827;
-        border: 1px solid rgba(124,58,237,.25); box-shadow: 0 6px 24px rgba(0,0,0,.25);
-        margin-bottom: 12px; }
-.badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; }
-.badge.green { background:#064e3b; color:#a7f3d0; border:1px solid #10b98133;}
-.badge.yellow{ background:#4d3a10; color:#fde68a; border:1px solid #f59e0b33;}
-.badge.red   { background:#4c1d1d; color:#fecaca; border:1px solid #ef444433;}
-.stButton>button { border-radius: 12px; padding: 8px 14px; font-weight: 600; border: 1px solid rgba(124,58,237,.35); }
-.stButton>button:hover { transform: translateY(-1px); transition: .15s }
-</style>
-""", unsafe_allow_html=True)
+# ------------ PAGE CONFIG ------------
+st.set_page_config(
+    page_title="Smart Automotive Scheduler",
+    page_icon="🚗",
+    layout="wide"
+)
 
-# ---- BOOTSTRAP: create tables + seed (cached) ----
+
+# ------------ ONE-TIME BOOTSTRAP (create tables + seed) ------------
 @st.cache_resource
 def bootstrap():
     init_db()
@@ -36,42 +24,165 @@ def bootstrap():
 
 bootstrap()
 
-# ---- SIDEBAR: DB debug + controls ----
-st.sidebar.title("🚗 Smart Scheduler")
 
-db_exists = os.path.exists("smart_scheduler.db")
-st.sidebar.info(f"DB Exists: {db_exists}")
+# ------------ THEME TOGGLE (Light / Dark) ------------
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = True  # default
 
-if db_exists:
-    try:
-        conn = sqlite3.connect("smart_scheduler.db")
-        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        st.sidebar.write("Tables:", tables)
-    finally:
-        conn.close()
-else:
-    st.sidebar.error("❌ smart_scheduler.db NOT FOUND")
+st.sidebar.write("")  # spacing
+st.session_state.dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
 
-if st.sidebar.button("🗑️ DELETE DATABASE FILE"):
-    try:
-        if os.path.exists("smart_scheduler.db"):
-            os.remove("smart_scheduler.db")
-            st.sidebar.success("✅ Deleted DB. Reload app to recreate.")
-        else:
-            st.sidebar.info("DB file did not exist.")
-    except Exception as e:
-        st.sidebar.error(f"Error deleting DB: {e}")
+# CSS design tokens for both themes
+THEME = {
+    "dark": {
+        "bg":        "#0B1220",
+        "bg2":       "#0F1629",
+        "panel":     "rgba(17, 24, 39, 0.55)",
+        "border":    "rgba(124, 58, 237, 0.35)",
+        "text":      "#E6EAF2",
+        "muted":     "#AAB1C5",
+        "primary":   "#7C3AED",
+        "shadow":    "0 10px 30px rgba(0,0,0,.35)"
+    },
+    "light": {
+        "bg":        "#F5F7FB",
+        "bg2":       "#FFFFFF",
+        "panel":     "rgba(255,255,255,0.65)",
+        "border":    "rgba(124, 58, 237, 0.25)",
+        "text":      "#0B1220",
+        "muted":     "#4A5568",
+        "primary":   "#7C3AED",
+        "shadow":    "0 10px 30px rgba(16,24,40,.10)"
+    }
+}
 
-if st.sidebar.button("🔄 Reseed Database"):
-    from core.seed import main as seed_main
-    seed_main()
-    st.sidebar.success("✅ Database reseeded.")
+tokens = THEME["dark" if st.session_state.dark_mode else "light"]
 
-# ---- NAV ----
-page = st.sidebar.radio("Select Role", ["Customer", "Admin"])
 
-# ---- ROUTES ----
-if page == "Customer":
+# ------------ GLOBAL STYLES ------------
+st.markdown(f"""
+<style>
+:root {{
+  --bg: {tokens['bg']};
+  --bg2: {tokens['bg2']};
+  --panel: {tokens['panel']};
+  --border: {tokens['border']};
+  --text: {tokens['text']};
+  --muted: {tokens['muted']};
+  --primary: {tokens['primary']};
+  --shadow: {tokens['shadow']};
+}}
+
+html, body, [data-testid="stAppViewContainer"] {{
+  background: var(--bg);
+  color: var(--text);
+}}
+
+.block-container {{ max-width: 1100px; }}
+h1, h2, h3 {{ letter-spacing: .3px; }}
+
+.gradient-header {{
+  margin: 6px 0 18px 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2B1C55 0%, #7C3AED 55%, #2B1C55 100%);
+  color: #fff;
+  box-shadow: var(--shadow);
+  border: 1px solid {tokens['border']};
+}}
+
+.card {{
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}}
+
+.badge {{
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}}
+
+.badge.green {{ background: #DCFCE7; color: #065F46; border: 1px solid #10B98166; }}
+.badge.yellow{{ background: #FEF9C3; color: #854D0E; border: 1px solid #F59E0B66; }}
+.badge.red    {{ background: #FEE2E2; color: #7F1D1D; border: 1px solid #EF444466; }}
+
+.stButton>button {{
+  border-radius: 12px; padding: 8px 14px; font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text);
+}}
+.stButton>button:hover {{ transform: translateY(-1px); transition: .15s }}
+
+[data-testid="stSidebar"] {{
+  background: transparent;
+}}
+.sidebar-glass {{
+  margin: 6px 8px 18px 8px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}}
+
+.sidebar-title {{
+  display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px;
+}}
+.sidebar-title img {{ width:26px; height:26px; border-radius:6px; }}
+
+@media (max-width: 640px) {{
+  .block-container {{ padding: 0 14px; }}
+  .gradient-header {{ border-radius: 12px; padding: 12px 14px; }}
+  .card {{ border-radius: 12px; }}
+}}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ------------ SIDEBAR (logo + nav with icons) ------------
+def sidebar_logo_html():
+    logo_path = "assets/logo.png"
+    if os.path.exists(logo_path):
+        return f'<img src="app://{logo_path}" alt="logo" />'
+    # fallback emoji
+    return "🚗"
+
+st.sidebar.markdown('<div class="sidebar-glass">', unsafe_allow_html=True)
+st.sidebar.markdown(
+    f'<div class="sidebar-title">{sidebar_logo_html()} <span>Smart Scheduler</span></div>',
+    unsafe_allow_html=True
+)
+
+nav = st.sidebar.radio(
+    "Navigation",
+    options=["👤 Customer", "🛠️ Admin"],
+    label_visibility="collapsed",
+)
+
+st.sidebar.markdown('</div>', unsafe_allow_html=True)  # close glass panel
+
+
+# ------------ TOP GRADIENT HEADER ------------
+st.markdown("""
+<div class="gradient-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-weight:800;font-size:20px;letter-spacing:.3px;">Smart Automotive Scheduler</div>
+    <div style="opacity:.9;">Seamless booking • Real-time slots • ML ranking</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ------------ ROUTING ------------
+if nav.startswith("👤"):
     customer.render()
 else:
     st.sidebar.subheader("Admin Login")
