@@ -32,7 +32,7 @@ Hold → Confirm booking flow
 
 Modern animations, cards & UI
 
-<h2>🚀 Features</h2>
+<h2>🚀 Admin Dashboard</h2>
 ✅ Admin Dashboard
 
 Daily KPIs
@@ -45,7 +45,7 @@ Service type distribution
 
 Clean tables & polished charts
 
-<h2>🚀 Features</h2>
+<h2>🚀 Machine Learning</h2>
 ✅ Machine Learning
 
 Random Forest model for ranking
@@ -54,7 +54,7 @@ Predictive scoring for optimal slots
 
 Real-time integration in UI
 
-<h2>🚀 Features</h2>
+<h2>🚀 UI / UX Enhancements</h2>
 ✅ UI / UX Enhancements
 
 Gradient header
